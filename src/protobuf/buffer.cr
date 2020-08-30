@@ -77,9 +77,6 @@ module Protobuf
     def read_int64
       n = read_uint64
       return nil if n.nil?
-      if n > Int64::MAX
-        n -= Int64::MAX.to_u64 + 1_u64
-      end
       n.to_i64!
     end
 
@@ -113,7 +110,7 @@ module Protobuf
 
     def decode_zigzag(value)
       return nil if value.nil?
-      return value >> 1 unless value & 0x1
+      return value >> 1 if (value & 0x1) === 0
       value >> 1 ^ (~0)
     end
 
