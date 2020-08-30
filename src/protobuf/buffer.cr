@@ -33,9 +33,23 @@ module Protobuf
     end
 
     def read_uint32
-      n = read_uint64
-      return nil if n.nil?
-      n.to_u32!
+      n = shift = 0_u32
+      loop do
+        if shift >= 32
+          raise Error.new("buffer overflow varint")
+        end
+        byte = @io.read_byte
+        if byte.nil?
+          return nil
+        end
+        b = byte.unsafe_chr.ord
+
+        n |= ((b & 0x7F).to_u32 << shift)
+        shift += 7
+        if (b & 0x80) == 0
+          return n.to_u32
+        end
+      end
     end
 
     def read(n : Int32)
@@ -84,8 +98,11 @@ module Protobuf
     end
 
     def read_int32
-      n = read_int64
+      n = read_uint32
       return nil if n.nil?
+      if n > Int32::MAX
+        n -= Int32::MAX.to_u32 + 1_u32
+      end
       n.to_i32!
     end
 
